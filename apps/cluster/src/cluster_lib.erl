@@ -18,7 +18,7 @@
 %-compile(export_all).
 -export([
 	 init_etcd/0,
-	 start_host_nodes/3,
+	 start_host_nodes/5,
 	 
 	 start_k3_on_hosts/3,
 	 start_controllers/1,
@@ -33,10 +33,23 @@
 %% External functions
 %% ====================================================================
 
-start_host_nodes(Hosts,ClusterId,CookieStr)->
-    ok.
+start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs)->
+    start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,[]).
     
-    
+start_host_nodes([],_NodeName,_CookieStr,_PaArgs,_EnvArgs,StartedNodes)->
+    StartedNodes;
+start_host_nodes([HostName|T],NodeName,CookieStr,PaArgs,EnvArgs,Acc)->
+    NewAcc=case node_server:ssh_create(HostName,NodeName,CookieStr,PaArgs,EnvArgs) of
+	       {error,Reason}->     
+		   rpc:cast(node(),nodelog_server,log,[warning,?MODULE_STRING,?LINE,
+						       {error,HostName,NodeName,Reason}]),
+		   Acc;
+	       {ok,Node}->
+		   rpc:cast(node(),nodelog_server,log,[info,?MODULE_STRING,?LINE,
+						       {"succesful start node ",Node,HostName,NodeName}]),
+		   [Node|Acc]
+	   end,
+    start_host_nodes(T,NodeName,CookieStr,PaArgs,EnvArgs,NewAcc).
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc

@@ -139,7 +139,6 @@ ping()->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
-
  %% Start needed applications
     ok=application:start(nodelog),
     ok=application:start(sd),
@@ -147,7 +146,6 @@ init([]) ->
     ok=application:start(config),
     ok=cluster_lib:init_etcd(),
 
-  
     %% Deployments info
     {ok,DeploymentNameAtom}=application:get_env(deployment_name),
     DeploymentName=atom_to_list(DeploymentNameAtom),  
@@ -165,10 +163,26 @@ init([]) ->
     
     true=erlang:set_cookie(node(),list_to_atom(CookieStr)),
     
-   % Här node need s to be updated and uses etcd
-   % start_host_vm(Hosts,ClusterDir,NodeName,CookieStr,PaArgs,EnvArgs,Acc),
+   % Create k3 nodes at hosts
+    NodeName=ClusterId++"_"++"node",
+    PaArgs=" ",
+    EnvArgs=" ",
+    AllHostNodes=cluster_lib:start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs),
+%    [Xhost|_]=AllHostNodes,
+ %   io:format("Xhost ~p~n",[{Xhost,net_adm:ping(Xhost)}]),
+    
+ %   gl=AllHostNodes,
+    
+    
+    
+    NodeAppl="k3",
+    {ok,ApplVsn}=db_application_spec:read(vsn,NodeAppl),
+    NodeDir=ClusterId,
+    {ok,GitPath}=db_application_spec:read(gitpath,NodeAppl),
+    {ok,StartCmd}=db_application_spec:read(cmd,NodeAppl),
+    [{RemoteNode,net_adm:ping(RemoteNode),node_server:load_start_appl(RemoteNode,NodeDir,NodeAppl,ApplVsn,GitPath,StartCmd)}||RemoteNode<-AllHostNodes],
+    
 
-    AllHostNodes=cluster_lib:start_host_nodes(Hosts,ClusterId,CookieStr),
     
     
     
