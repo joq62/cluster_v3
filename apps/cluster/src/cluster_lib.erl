@@ -18,7 +18,7 @@
 %-compile(export_all).
 -export([
 	 init_etcd/0,
-	 start_host_nodes/5,
+	 start_host_nodes/7,
 	 
 	 start_k3_on_hosts/3,
 	 start_controllers/1,
@@ -33,12 +33,12 @@
 %% External functions
 %% ====================================================================
 
-start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs)->
-    start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,[]).
+start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir)->
+    start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,[]).
     
-start_host_nodes([],_NodeName,_CookieStr,_PaArgs,_EnvArgs,StartedNodes)->
+start_host_nodes([],_NodeName,_CookieStr,_PaArgs,_EnvArgs,_NodeAppl,_NodeDir,StartedNodes)->
     StartedNodes;
-start_host_nodes([HostName|T],NodeName,CookieStr,PaArgs,EnvArgs,Acc)->
+start_host_nodes([HostName|T],NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,Acc)->
     NewAcc=case node_server:ssh_create(HostName,NodeName,CookieStr,PaArgs,EnvArgs) of
 	       {error,Reason}->     
 		   rpc:cast(node(),nodelog_server,log,[warning,?MODULE_STRING,?LINE,
@@ -47,9 +47,30 @@ start_host_nodes([HostName|T],NodeName,CookieStr,PaArgs,EnvArgs,Acc)->
 	       {ok,Node}->
 		   rpc:cast(node(),nodelog_server,log,[info,?MODULE_STRING,?LINE,
 						       {"succesful start node ",Node,HostName,NodeName}]),
-		   [Node|Acc]
+		   rpc:call(Node,os,cmd,["rm -rf "++NodeDir],5000),
+		   case rpc:call(Node,file,make_dir,[NodeDir],5000) of
+		       {error,Reason}->
+			   rpc:cast(node(),nodelog_server,log,[warning,?MODULE_STRING,?LINE,
+						       {"failed create NodeDir ",Node,NodeDir,Reason}]),
+			   Acc;
+		       ok->
+			   {ok,ApplVsn}=db_application_spec:read(vsn,NodeAppl),
+			   {ok,GitPath}=db_application_spec:read(gitpath,NodeAppl),
+			   {ok,StartCmd}=db_application_spec:read(cmd,NodeAppl),
+			   case node_server:load_start_appl(Node,NodeDir,NodeAppl,ApplVsn,GitPath,StartCmd) of
+			       {error,Reason}->
+				   rpc:cast(node(),nodelog_server,log,[warning,?MODULE_STRING,?LINE,
+								       {"failed create NodeDir ",Node,NodeDir,Reason}]),
+				   Acc;
+			       {ok,ApplId,ApplVsn,ApplDir}->
+				   rpc:cast(node(),nodelog_server,log,[info,?MODULE_STRING,?LINE,
+								       {"succesful start application ",Node,ApplId,ApplDir}]),
+				   
+				   [Node|Acc]
+			   end
+		   end
 	   end,
-    start_host_nodes(T,NodeName,CookieStr,PaArgs,EnvArgs,NewAcc).
+    start_host_nodes(T,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,NewAcc).
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
@@ -104,7 +125,7 @@ git_load_start_node([{ok,Node,_HostName,ClusterDir}|T])->
     rpc:call(Node,os,cmd,["cp host_info_specs/* "++filename:join([ClusterDir,"deployments"])]),
 
     %% git clone application and deployment specs
-  GitPathApplicationInfo=config_server:deployment_spec_applicatioapplication_gitpath("node.spec"),
+    _GitPathApplicationInfo=config_server:deployment_spec_applicatioapplication_gitpath("node.spec"),
 
 
     ApplDir=filename:join([ClusterDir,"node"]),

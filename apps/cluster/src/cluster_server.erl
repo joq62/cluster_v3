@@ -167,25 +167,11 @@ init([]) ->
     NodeName=ClusterId++"_"++"node",
     PaArgs=" ",
     EnvArgs=" ",
-    AllHostNodes=cluster_lib:start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs),
-%    [Xhost|_]=AllHostNodes,
- %   io:format("Xhost ~p~n",[{Xhost,net_adm:ping(Xhost)}]),
-    
- %   gl=AllHostNodes,
-    
-    
-    
-    NodeAppl="k3",
-    {ok,ApplVsn}=db_application_spec:read(vsn,NodeAppl),
+    NodeAppl="k3.spec",
     NodeDir=ClusterId,
-    {ok,GitPath}=db_application_spec:read(gitpath,NodeAppl),
-    {ok,StartCmd}=db_application_spec:read(cmd,NodeAppl),
-    [{RemoteNode,net_adm:ping(RemoteNode),node_server:load_start_appl(RemoteNode,NodeDir,NodeAppl,ApplVsn,GitPath,StartCmd)}||RemoteNode<-AllHostNodes],
+    StartedHostNodes=cluster_lib:start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir),
     
-
-    
-    
-    
+    io:format("StartedHostNodes ~p~n",[StartedHostNodes]),
     
     %% Init logging 
     LogDir="logs",
