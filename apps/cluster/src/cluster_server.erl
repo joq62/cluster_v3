@@ -16,18 +16,10 @@
 
 %% --------------------------------------------------------------------
 -define(SERVER,?MODULE).
--define(DeplSpecExtension,".depl_spec").
+%-define(DeplSpecExtension,".depl_spec").
 
 %% External exports
 -export([
-	
-%	 create_pod/2,
-%	 delete_pod/2,
-	 %connect/2,
-	 started_pods/1,
-	 failed_pods/1,
-	 
-%	 create_cluster/3,
 	 delete_cluster/0,
 	 read_state/0,
 
@@ -47,12 +39,6 @@
 -record(state, {
 		cluster_id=undefined,
 		cookie=undefined,
-		num_controllers=undefined,
-		num_workers=undefined,
-		affinity=undefined,
-		k3_nodes=undefined,
-		controller_start=undefined,
-		worker_start=undefined,
 		start_time=undefined
 	       }).
 
@@ -74,11 +60,6 @@ stop()-> gen_server:call(?SERVER, {stop},infinity).
 %% Application handling
 %% ====================================================================
 
-
-started_pods(Type)->
-    gen_server:call(?SERVER, {started_pods,Type},infinity).
-failed_pods(Type)->
-    gen_server:call(?SERVER, {failed_pods,Type},infinity).
     
 %%---------------------------------------------------------------
 %% Function:delete_pod
@@ -141,6 +122,13 @@ ping()->
 init([]) ->
  %% Start needed applications
     ok=application:start(nodelog),
+      %% Init logging 
+    LogDir="logs",
+    LogFileName="cluster.log",
+    ok=file:make_dir(LogDir),
+    LogFile=filename:join([LogDir,LogFileName]),
+    nodelog_server:create(LogFile),    
+
     ok=application:start(sd),
     ok=application:start(node),
     ok=application:start(config),
@@ -149,63 +137,25 @@ init([]) ->
     %% Deployments info
     {ok,DeploymentNameAtom}=application:get_env(deployment_name),
     DeploymentName=atom_to_list(DeploymentNameAtom),  
-    
-    io:format("DeploymentName ~p~n",[DeploymentName]),
-    io:format("db_deployments:read_all() ~p~n",[db_deployments:read_all()]),
- 
     {ok,ClusterId}=db_deployments:read(name,DeploymentName),
     {ok,CookieStr}=db_deployments:read(cookie,DeploymentName),
-    {ok,NumControllers}=db_deployments:read(controllers,DeploymentName),
-    {ok,NumWorkers}=db_deployments:read(workers,DeploymentName),
     {ok,Hosts}=db_deployments:read(hosts,DeploymentName),
-    {ok,Deployments}=db_deployments:read(deployments,DeploymentName),
-    io:format("~p~n",[{ClusterId,CookieStr,NumControllers,NumWorkers,Hosts,Deployments}]),
-    
+      
     true=erlang:set_cookie(node(),list_to_atom(CookieStr)),
     
    % Create k3 nodes at hosts
     NodeName=ClusterId++"_"++"node",
     PaArgs=" ",
     EnvArgs=" ",
-    NodeAppl="k3.spec",
+    Appl="k3.spec",
     NodeDir=ClusterId,
-    StartedHostNodes=cluster_lib:start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir),
-    
-    io:format("StartedHostNodes ~p~n",[StartedHostNodes]),
-    
-    %% Init logging 
-    LogDir="logs",
-    LogFileName="cluster.log",
-    ok=file:make_dir(LogDir),
-    LogFile=filename:join([LogDir,LogFileName]),
-    nodelog_server:create(LogFile),    
-
-    % Start k3 on other hosts
-  %  AllK3Nodes=k3_lib:start_k3_on_hosts(ClusterId,CookieStr,Hosts),
-    
-    
-
-    %% Start leader election to determ leader
-
- 
-    %% Create a new cluster   
-
-   
-   % {ok,StartResult}=k3_lib:create_cluster(ClusterId,CookieStr,NumControllers,NumWorkers,AllK3Nodes),
-    %nodelog_server:log(notice,?MODULE_STRING,?LINE,{ClusterId," Cluster successfully created"}),
-	 
-   % {StartedControllers,FailedControllers}=proplists:get_value(controllers,StartResult),    
-%    ok=k3_lib:start_controllers(StartedControllers),
-   % {StartedWorkers,FailedWorkers}=proplists:get_value(workers,StartResult),
+%    StartedHostNodes=cluster_lib:start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,DeploymentName),
+    [HostName|_]=Hosts,
+    rpc:call(node(),remote_host,start,[HostName,NodeName,CookieStr,PaArgs,EnvArgs,Appl,NodeDir,DeploymentName],5*5000),
     
     {ok, #state{
 	    cluster_id=ClusterId,
 	    cookie=CookieStr,
-	    num_controllers=NumControllers,
-	    num_workers=NumWorkers,
-	  %  k3_nodes=AllK3Nodes,
-	  %  controller_start={StartedControllers,FailedControllers},
-	  %  worker_start={StartedWorkers,FailedWorkers},
 	    start_time={date(),time()}
 	   }
     }.
@@ -220,27 +170,11 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_call({started_pods,controller},_From, State) ->
-    {Reply,_FailedControllers}=State#state.controller_start,
-    {reply, Reply, State};
-handle_call({failed_pods,controller},_From, State) ->
-    {_StartedControllers,Reply}=State#state.controller_start,
-    {reply, Reply, State};
-
-handle_call({started_pods,worker},_From, State) ->
-    {Reply,_FailedWorkers}=State#state.worker_start,
-    {reply, Reply, State};
-handle_call({failed_pods,worker},_From, State) ->
-    {_StartedWorkers,Reply}=State#state.worker_start,
-    {reply, Reply, State};
-
 
 handle_call({delete_cluster},_From, State) ->
     Reply=ok,
     NewState=State#state{
-	       num_controllers=undefined,
-	       num_workers=undefined,
-	       affinity=undefined,
+	       
 	       start_time=undefined},
     {reply, Reply, NewState};
 

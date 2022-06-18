@@ -18,12 +18,10 @@
 %-compile(export_all).
 -export([
 	 init_etcd/0,
-	 start_host_nodes/7,
+	 start_host_nodes/8,
 	 
 	 start_k3_on_hosts/3,
-	 start_controllers/1,
-	 start_needed_appl/3,
-	 get_env/0,
+
 	 
 	 create_cluster/5
 	]).
@@ -33,12 +31,12 @@
 %% External functions
 %% ====================================================================
 
-start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir)->
-    start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,[]).
+start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,DeploymentName)->
+    start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,DeploymentName,[]).
     
-start_host_nodes([],_NodeName,_CookieStr,_PaArgs,_EnvArgs,_NodeAppl,_NodeDir,StartedNodes)->
+start_host_nodes([],_NodeName,_CookieStr,_PaArgs,_EnvArgs,_NodeAppl,_NodeDir,DeploymentName,StartedNodes)->
     StartedNodes;
-start_host_nodes([HostName|T],NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,Acc)->
+start_host_nodes([HostName|T],NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,DeploymentName,Acc)->
     NewAcc=case node_server:ssh_create(HostName,NodeName,CookieStr,PaArgs,EnvArgs) of
 	       {error,Reason}->     
 		   rpc:cast(node(),nodelog_server,log,[warning,?MODULE_STRING,?LINE,
@@ -57,6 +55,7 @@ start_host_nodes([HostName|T],NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir
 			   {ok,ApplVsn}=db_application_spec:read(vsn,NodeAppl),
 			   {ok,GitPath}=db_application_spec:read(gitpath,NodeAppl),
 			   {ok,StartCmd}=db_application_spec:read(cmd,NodeAppl),
+			   ok=rpc:call(Node,application,set_env,[[{k3,[{deployment_name,DeploymentName}]}]],5000),
 			   case node_server:load_start_appl(Node,NodeDir,NodeAppl,ApplVsn,GitPath,StartCmd) of
 			       {error,Reason}->
 				   rpc:cast(node(),nodelog_server,log,[warning,?MODULE_STRING,?LINE,
@@ -65,7 +64,6 @@ start_host_nodes([HostName|T],NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir
 			       {ok,ApplId,ApplVsn,ApplDir}->
 				   rpc:cast(node(),nodelog_server,log,[info,?MODULE_STRING,?LINE,
 								       {"succesful start application ",Node,ApplId,ApplDir}]),
-				   
 				   [Node|Acc]
 			   end
 		   end
@@ -194,65 +192,7 @@ start_host_vm([HostName|T],ClusterDir,NodeName,CookieStr,PaArgs,EnvArgs,Acc)->
 %% --------------------------------------------------------------------
 
 
-start_controllers(StartedControllers)->
-    ApplId="k3_controller",
-    ApplVsn="latest",
-    
-    start_controllers(StartedControllers,ApplId,ApplVsn,[]),
-    ok.
 
-start_controllers([],_,_,Result)->
-    Result;
-start_controllers([PodInfo|T],ApplId,ApplVsn,Acc) ->
-    PodNode=proplists:get_value(pod_node,PodInfo),
-    PodDir=proplists:get_value(pod_dir,PodInfo),
-    R=pod_lib:load_start(PodNode,PodDir,ApplId,ApplVsn),
-    start_controllers(T,ApplId,ApplVsn,[R|Acc]).
-    
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% --------------------------------------------------------------------
-start_needed_appl(ClusterId,LogDir,LogFileName)->
-    
-    CommonR=application:start(common),
-    ok=application:start(nodelog),
-
-    os:cmd("rm -rf "++ClusterId),
-    ok=file:make_dir(ClusterId),
-    ok=file:make_dir(filename:join(ClusterId,LogDir)),
-    LogFile=filename:join([ClusterId,LogDir,LogFileName]),
-    nodelog_server:create(LogFile),
-    
-    nodelog_server:log(notice,?MODULE_STRING,?LINE,{"Result start common ",CommonR}),
-    nodelog_server:log(notice,?MODULE_STRING,?LINE,{"Result start sd_app ",application:start(sd)}),
-    nodelog_server:log(notice,?MODULE_STRING,?LINE,{"Result start config_app ",application:start(config)}),
-    nodelog_server:log(notice,?MODULE_STRING,?LINE,"server successfully started"),    
-    ok.
-
-%% ---------------------------------------------------0-----------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% --------------------------------------------------------------------
-get_env()->
-    {ok,ClusterIdAtom}=application:get_env(clusterid),
-    ClusterId=atom_to_list(ClusterIdAtom),
-    {ok,NumControllers}=application:get_env(num_controllers),
-    true=is_integer(NumControllers),
-    {ok,NumWorkers}=application:get_env(num_workers),
-  %  NumWorkers=list_to_integer(atom_to_list(NumWorkersAtom)),
-    true=is_integer(NumWorkers),
-    {ok,HostsAtom}=application:get_env(hosts),
-    true=is_list(HostsAtom),
-    Hosts=[atom_to_list(Host)||Host<-HostsAtom],
-    Cookie=erlang:get_cookie(),
-    [{cluster_id,ClusterId},
-     {cookie,Cookie},
-     {num_controllers,NumControllers},
-     {num_workers,NumWorkers},
-     {hosts,Hosts}].
 
 
 %% --------------------------------------------------------------------

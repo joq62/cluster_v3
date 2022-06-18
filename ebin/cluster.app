@@ -5,6 +5,7 @@
               {mod,{cluster_app,[]}},
               {applications,[kernel,stdlib]},
               {env,[]},
-              {modules,[cluster_app,cluster_lib,cluster_server,cluster_sup]},
+              {modules,[cluster_app,cluster_lib,cluster_server,cluster_sup,
+                        remote_host]},
               {licenses,["Apache 2.0"]},
               {links,[]}]}.
