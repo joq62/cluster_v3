@@ -151,7 +151,11 @@ init([]) ->
     NodeDir=ClusterId,
 %    StartedHostNodes=cluster_lib:start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,DeploymentName),
     [HostName|_]=Hosts,
-    rpc:call(node(),remote_host,start,[HostName,NodeName,CookieStr,PaArgs,EnvArgs,Appl,NodeDir,DeploymentName],5*5000),
+    HostStartResult=rpc:call(node(),remote_host,start,[HostName,NodeName,CookieStr,PaArgs,EnvArgs,Appl,NodeDir,DeploymentName],5*5000),
+    rpc:cast(node(),nodelog_server,log,[info,?MODULE_STRING,?LINE,
+						       {"HostStartResult",HostStartResult}]),
+    
+	
     
     {ok, #state{
 	    cluster_id=ClusterId,

@@ -25,8 +25,6 @@
 start()->
     ok=cluster_server:appl_start([]),
   
-
-  
 %    create_controllers(),
     io:format(" sd_server:all() ~p~n",[ sd_server:all()]),
     io:format(" sd_server:get(common) ~p~n",[ sd_server:get(node)]),
