@@ -1,0 +1,9 @@
+multiple_app_files: ["/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3/ebin/common.app",
+                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3/ebin/config.app",
+                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3/ebin/etcd.app",
+                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3/ebin/k3.app",
+                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3/ebin/node.app",
+                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3/ebin/nodelog.app",
+                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3/ebin/sd.app"]
+[]
+
