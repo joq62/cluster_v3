@@ -32,9 +32,10 @@ start(HostName,NodeName,CookieStr,PaArgs,EnvArgs,_Appl,NodeDirBase,DeploymentNam
     ok=etcd_init(Node,NodeDir),
     ok=sd_init(Node,NodeDir),
     ok=nodelog_init(Node,NodeDir),    
+    ok=node_init(Node,NodeDir), 
     ok=k3_init(Node,NodeDir,DeploymentName),
     ok=leader_init(Node,NodeDir),  
-    ok=node_init(Node,NodeDir),
+ 
   
 
     ok.
@@ -53,7 +54,7 @@ leader_init(Node,NodeDir)->
     {ok,StartCmd}=db_application_spec:read(cmd,NodeAppl),
     
     ok=rpc:call(Node,application,set_env,[[{leader,[{application_to_track,k3}]}]],5000),
-    {ok,"k3.spec",_,_}=node_server:load_start_appl(Node,NodeDir,ApplId,ApplVsn,GitPath,StartCmd),
+    {ok,"leader.spec",_,_}=node_server:load_start_appl(Node,NodeDir,ApplId,ApplVsn,GitPath,StartCmd),
     pong=rpc:call(Node,leader_server,ping,[],5000),
     rpc:cast(node(),nodelog_server,log,[notice,?MODULE_STRING,?LINE,
 					{"OK, Started application at  node ",leader," ",Node}]),
@@ -91,7 +92,7 @@ node_init(Node,NodeDir)->
     {ok,GitPath}=db_application_spec:read(gitpath,NodeAppl),
     {ok,StartCmd}=db_application_spec:read(cmd,NodeAppl),
 
-    {ok,"sd.spec",_,_}=node_server:load_start_appl(Node,NodeDir,ApplId,ApplVsn,GitPath,StartCmd),
+    {ok,"node.spec",_,_}=node_server:load_start_appl(Node,NodeDir,ApplId,ApplVsn,GitPath,StartCmd),
     pong=rpc:call(Node,node_server,ping,[],5000),
     rpc:cast(node(),nodelog_server,log,[notice,?MODULE_STRING,?LINE,
 					{"OK, Started application at  node ",node," ",Node}]),
@@ -110,8 +111,6 @@ nodelog_init(Node,NodeDir)->
     {ok,GitPath}=db_application_spec:read(gitpath,NodeAppl),
     {ok,StartCmd}=db_application_spec:read(cmd,NodeAppl),
     {ok,"nodelog.spec",_,_}=node_server:load_start_appl(Node,NodeDir,ApplId,ApplVsn,GitPath,StartCmd),
-    rpc:cast(node(),nodelog_server,log,[notice,?MODULE_STRING,?LINE,
-					{"Debug ",Node,?MODULE,?LINE}]),
     pong=rpc:call(Node,nodelog_server,ping,[],5000),
 
     LogDir=filename:join(NodeDir,"logs"),
