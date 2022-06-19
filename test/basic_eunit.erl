@@ -24,10 +24,14 @@
 %% --------------------------------------------------------------------
 start()->
     ok=cluster_server:appl_start([]),
+   timer:sleep(3000),
   
 %    create_controllers(),
     io:format(" sd_server:all() ~p~n",[ sd_server:all()]),
-    io:format(" sd_server:get(common) ~p~n",[ sd_server:get(node)]),
+    timer:sleep(100),
+    LeaderNodes=sd_server:get(leader),
+    Leader=[{Node,rpc:call(Node,leader_server,who_is_leader,[],1000)}||Node<-LeaderNodes],
+    io:format("Leader ~p~n",[Leader]),
     
     
    % [rpc:call(N,init,stop,[],1000)||N<-nodes()],
