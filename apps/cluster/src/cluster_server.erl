@@ -150,8 +150,9 @@ init([]) ->
     Appl="k3.spec",
     NodeDir=ClusterId,
 %    StartedHostNodes=cluster_lib:start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,DeploymentName),
-    [HostName|_]=Hosts,
-    HostStartResult=rpc:call(node(),remote_host,start,[HostName,NodeName,CookieStr,PaArgs,EnvArgs,Appl,NodeDir,DeploymentName],5*5000),
+%    [HostName|_]=Hosts,
+    HostStartResult=[rpc:call(node(),remote_host,start,[HostName,NodeName,CookieStr,PaArgs,EnvArgs,Appl,NodeDir,DeploymentName],5*5000)||HostName<-Hosts],
+    timer:sleep(1000),
     rpc:cast(node(),nodelog_server,log,[info,?MODULE_STRING,?LINE,
 						       {"HostStartResult",HostStartResult}]),
     
