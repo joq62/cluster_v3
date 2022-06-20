@@ -133,28 +133,10 @@ init([]) ->
     ok=application:start(node),
     ok=application:start(config),
     ok=cluster_lib:init_etcd(),
+    {ok,DeploymentNameAtom}=application:get_env(deployment_name),
+    DeploymentName=atom_to_list(DeploymentNameAtom),  
 
-%    {ok,CookieStr}=db_deployments:read(cookie,DeploymentName),
-%    true=erlang:set_cookie(node(),list_to_atom(CookieStr)),
-
-    %% Deployments info
- %   {ok,DeploymentNameAtom}=application:get_env(deployment_name),
-  %  DeploymentName=atom_to_list(DeploymentNameAtom),  
-  %  {ok,ClusterId}=db_deployments:read(name,DeploymentName),
-  
-  %  {ok,Hosts}=db_deployments:read(hosts,DeploymentName),
-      
-  
-    
-   % Create k3 nodes at hosts
- %   NodeName=ClusterId++"_"++"node",
-  %  PaArgs=" ",
-  %  EnvArgs=" ",
-  %  Appl="k3.spec",
-  %  NodeDir=ClusterId,
-%    StartedHostNodes=cluster_lib:start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,DeploymentName),
-%    [HostName|_]=Hosts,
-    HostStartResult=rpc:call(node(),k3_remote_host,start_k3,[],25*5000),
+    HostStartResult=rpc:call(node(),k3_remote_host,start_k3,[DeploymentName],25*5000),
     timer:sleep(1000),
     rpc:cast(node(),nodelog_server,log,[notice,?MODULE_STRING,?LINE,
 						       {"HostStartResult",HostStartResult}]),

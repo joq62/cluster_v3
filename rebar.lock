@@ -12,7 +12,7 @@
   0},
  {<<"k3">>,
   {git,"https://github.com/joq62/k3.git",
-       {ref,"dd43132af1a222f0c6b183634cc0b4a7594ad072"}},
+       {ref,"5beb3aa66b9ea524adbb2a48ae74d0b536889955"}},
   0},
  {<<"node">>,
   {git,"https://github.com/joq62/node.git",
