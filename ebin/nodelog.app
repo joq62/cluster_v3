@@ -5,7 +5,6 @@
               {mod,{nodelog_app,[]}},
               {applications,[kernel,stdlib]},
               {env,[]},
-              {modules,[lib_logger,misc_node,nodelog_app,nodelog_server,
-                        nodelog_sup]},
+              {modules,[lib_logger,misc_node,nodelog,nodelog_app,nodelog_sup]},
               {licenses,["Apache 2.0"]},
               {links,[]}]}.

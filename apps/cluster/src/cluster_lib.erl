@@ -37,18 +37,18 @@ start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,Deploy
 start_host_nodes([],_NodeName,_CookieStr,_PaArgs,_EnvArgs,_NodeAppl,_NodeDir,DeploymentName,StartedNodes)->
     StartedNodes;
 start_host_nodes([HostName|T],NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,DeploymentName,Acc)->
-    NewAcc=case node_server:ssh_create(HostName,NodeName,CookieStr,PaArgs,EnvArgs) of
+    NewAcc=case node:ssh_create(HostName,NodeName,CookieStr,PaArgs,EnvArgs) of
 	       {error,Reason}->     
-		   rpc:cast(node(),nodelog_server,log,[warning,?MODULE_STRING,?LINE,
+		   rpc:cast(node(),nodelog,log,[warning,?MODULE_STRING,?LINE,
 						       {error,HostName,NodeName,Reason}]),
 		   Acc;
 	       {ok,Node}->
-		   rpc:cast(node(),nodelog_server,log,[info,?MODULE_STRING,?LINE,
+		   rpc:cast(node(),nodelog,log,[info,?MODULE_STRING,?LINE,
 						       {"succesful start node ",Node,HostName,NodeName}]),
 		   rpc:call(Node,os,cmd,["rm -rf "++NodeDir],5000),
 		   case rpc:call(Node,file,make_dir,[NodeDir],5000) of
 		       {error,Reason}->
-			   rpc:cast(node(),nodelog_server,log,[warning,?MODULE_STRING,?LINE,
+			   rpc:cast(node(),nodelog,log,[warning,?MODULE_STRING,?LINE,
 						       {"failed create NodeDir ",Node,NodeDir,Reason}]),
 			   Acc;
 		       ok->
@@ -56,13 +56,13 @@ start_host_nodes([HostName|T],NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir
 			   {ok,GitPath}=db_application_spec:read(gitpath,NodeAppl),
 			   {ok,StartCmd}=db_application_spec:read(cmd,NodeAppl),
 			   ok=rpc:call(Node,application,set_env,[[{k3,[{deployment_name,DeploymentName}]}]],5000),
-			   case node_server:load_start_appl(Node,NodeDir,NodeAppl,ApplVsn,GitPath,StartCmd) of
+			   case node:load_start_appl(Node,NodeDir,NodeAppl,ApplVsn,GitPath,StartCmd) of
 			       {error,Reason}->
-				   rpc:cast(node(),nodelog_server,log,[warning,?MODULE_STRING,?LINE,
+				   rpc:cast(node(),nodelog,log,[warning,?MODULE_STRING,?LINE,
 								       {"failed create NodeDir ",Node,NodeDir,Reason}]),
 				   Acc;
 			       {ok,ApplId,ApplVsn,ApplDir}->
-				   rpc:cast(node(),nodelog_server,log,[info,?MODULE_STRING,?LINE,
+				   rpc:cast(node(),nodelog,log,[info,?MODULE_STRING,?LINE,
 								       {"succesful start application ",Node,ApplId,ApplDir}]),
 				   [Node|Acc]
 			   end
@@ -75,9 +75,9 @@ start_host_nodes([HostName|T],NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir
 %% Returns: non
 %% --------------------------------------------------------------------
 init_etcd()->
-    ok=etcd_server:appl_start([]),
-    pong=etcd_server:ping(), 
-    ok=etcd_server:dynamic_db_init([]),
+    ok=etcd:appl_start([]),
+    pong=etcd:ping(), 
+    ok=etcd:dynamic_db_init([]),
     ok=db_host_spec:init_table(),
     ok=db_application_spec:init_table(),
     ok=db_deployment_info:init_table(),
@@ -123,13 +123,13 @@ git_load_start_node([{ok,Node,_HostName,ClusterDir}|T])->
     rpc:call(Node,os,cmd,["cp host_info_specs/* "++filename:join([ClusterDir,"deployments"])]),
 
     %% git clone application and deployment specs
-    _GitPathApplicationInfo=config_server:deployment_spec_applicatioapplication_gitpath("node.spec"),
+    _GitPathApplicationInfo=config:deployment_spec_applicatioapplication_gitpath("node.spec"),
 
 
     ApplDir=filename:join([ClusterDir,"node"]),
     ok=rpc:call(Node,file,make_dir,[ApplDir],5000),
-    GitPath=config_server:application_gitpath("node.spec"),
-    {M,F,A}=config_server:application_start_cmd("node.spec"),
+    GitPath=config:application_gitpath("node.spec"),
+    {M,F,A}=config:application_start_cmd("node.spec"),
    
     TempDir="temp"++"_"++ClusterDir++".dir",
     rpc:call(Node,os,cmd,["rm -rf "++TempDir],5000),
@@ -143,7 +143,7 @@ git_load_start_node([{ok,Node,_HostName,ClusterDir}|T])->
     true=rpc:call(Node,code,add_patha,[ClusterDir],5000),
     true=rpc:call(Node,code,add_patha,[ClusterDir++"/*"],5000),
     ok=rpc:call(Node,M,F,A,2*5000),
-    pong=rpc:call(Node,node_server,ping,[],5000),
+    pong=rpc:call(Node,node,ping,[],5000),
     git_load_start_node(T).
 
 
@@ -156,27 +156,27 @@ git_load_start_node([{ok,Node,_HostName,ClusterDir}|T])->
 start_host_vm([],_ClusterDir,_NodeName,_CookieStr,_PaArgs,_EnvArgs,AllK3Nodes)->
     AllK3Nodes;
 start_host_vm([HostName|T],ClusterDir,NodeName,CookieStr,PaArgs,EnvArgs,Acc)->
-    NewAcc=case node_server:ssh_create(HostName,NodeName,CookieStr,PaArgs,EnvArgs) of
+    NewAcc=case node:ssh_create(HostName,NodeName,CookieStr,PaArgs,EnvArgs) of
 	       {ok,HostNode}->
 		   case rpc:call(HostNode,os,cmd,["rm -rf "++ClusterDir],5000) of
 		       {badrpc,Reason}->
-			   nodelog_server:log(notice,?MODULE_STRING,?LINE,{"Error reate node at host ",HostName,badrpc,Reason}),
+			   nodelog:log(notice,?MODULE_STRING,?LINE,{"Error reate node at host ",HostName,badrpc,Reason}),
 			   Acc;
 		       _->
 			   case rpc:call(HostNode,file,make_dir,[ClusterDir],5000) of
 			       {error,Reason}->
-				   nodelog_server:log(notice,?MODULE_STRING,?LINE,{"Error failed to create node at host ",HostName,Reason}),
+				   nodelog:log(notice,?MODULE_STRING,?LINE,{"Error failed to create node at host ",HostName,Reason}),
 				   Acc;
 			       ok->
-				   nodelog_server:log(notice,?MODULE_STRING,?LINE,{"Cluster node  successfully created at host ",HostName," ",HostNode}),
+				   nodelog:log(notice,?MODULE_STRING,?LINE,{"Cluster node  successfully created at host ",HostName," ",HostNode}),
 				   [{ok,HostNode,HostName,ClusterDir}|Acc]
 			   end
 		   end;
 	       {error,Reason}->
-		   nodelog_server:log(notice,?MODULE_STRING,?LINE,{"Error failed to create node at host ",HostName,Reason}),
+		   nodelog:log(notice,?MODULE_STRING,?LINE,{"Error failed to create node at host ",HostName,Reason}),
 		   Acc;
 	       Error ->
-		   nodelog_server:log(notice,?MODULE_STRING,?LINE,{"Error reate node at host ",HostName,Error}),
+		   nodelog:log(notice,?MODULE_STRING,?LINE,{"Error reate node at host ",HostName,Error}),
 		   Acc
 	   end,
     start_host_vm(T,ClusterDir,NodeName,CookieStr,PaArgs,EnvArgs,NewAcc).
@@ -227,28 +227,28 @@ create(N,ClusterName,Cookie,Type,Started,_Failed)->
     PaArgs=" ",
     EnvArgs=" ",
     
-    {ok,Node}=node_server:create(HostName,NodeDir,NodeName,Cookie,PaArgs,EnvArgs),
+    {ok,Node}=node:create(HostName,NodeDir,NodeName,Cookie,PaArgs,EnvArgs),
     true=erlang:monitor_node(Node,true),
     
     %% start commonm
-    GitPathCommon=config_server:application_gitpath("common.spec"),
-    StartCmdCommon=config_server:application_start_cmd("common.spec"),
-    {ok,"common","0.1.0",_ApplDirCommon}=node_server:load_start_appl(Node,NodeDir,"common","0.1.0",GitPathCommon,StartCmdCommon),
+    GitPathCommon=config:application_gitpath("common.spec"),
+    StartCmdCommon=config:application_start_cmd("common.spec"),
+    {ok,"common","0.1.0",_ApplDirCommon}=node:load_start_appl(Node,NodeDir,"common","0.1.0",GitPathCommon,StartCmdCommon),
     %% start nodelog
-    GitPathNodelog=config_server:application_gitpath("nodelog.spec"),
-    StartCmdNodelog=config_server:application_start_cmd("nodelog.spec"),
-    {ok,"nodelog","0.1.0",_ApplDirNodelog}=node_server:load_start_appl(Node,NodeDir,"nodelog","0.1.0",GitPathNodelog,StartCmdNodelog),
+    GitPathNodelog=config:application_gitpath("nodelog.spec"),
+    StartCmdNodelog=config:application_start_cmd("nodelog.spec"),
+    {ok,"nodelog","0.1.0",_ApplDirNodelog}=node:load_start_appl(Node,NodeDir,"nodelog","0.1.0",GitPathNodelog,StartCmdNodelog),
     ok=file:make_dir(filename:join(NodeDir,"logs")),
     LogFile=filename:join([NodeDir,"logs",NodeName++".log"]),
-    rpc:call(Node,nodelog_server,create,[LogFile],5000),
+    rpc:call(Node,nodelog,create,[LogFile],5000),
 
-    nodelog_server:log(notice,?MODULE_STRING,?LINE,{"Started common"}),
-    nodelog_server:log(notice,?MODULE_STRING,?LINE,{"Started nodelog"}),
+    nodelog:log(notice,?MODULE_STRING,?LINE,{"Started common"}),
+    nodelog:log(notice,?MODULE_STRING,?LINE,{"Started nodelog"}),
    %% start sd
-    GitPathSd=config_server:application_gitpath("sd.spec"),
-    StartCmdSd=config_server:application_start_cmd("sd.spec"),
-    {ok,"sd","0.1.0",_ApplDirSd}=node_server:load_start_appl(Node,NodeDir,"sd","0.1.0",GitPathSd,StartCmdSd),
-    nodelog_server:log(notice,?MODULE_STRING,?LINE,{"Started sd"}),	 
+    GitPathSd=config:application_gitpath("sd.spec"),
+    StartCmdSd=config:application_start_cmd("sd.spec"),
+    {ok,"sd","0.1.0",_ApplDirSd}=node:load_start_appl(Node,NodeDir,"sd","0.1.0",GitPathSd,StartCmdSd),
+    nodelog:log(notice,?MODULE_STRING,?LINE,{"Started sd"}),	 
     NewStarted=[[{type,list_to_atom(Type)},{node_name,NodeName},{node_dir,NodeDir},{node,Node},{created,{date(),time()}}]|Started],
     NewFailed=[],
     create(N-1,ClusterName,Cookie,Type,NewStarted,NewFailed).

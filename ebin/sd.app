@@ -5,6 +5,6 @@
               {mod,{sd_app,[]}},
               {applications,[kernel,stdlib]},
               {env,[]},
-              {modules,[sd_app,sd_server,sd_sup]},
+              {modules,[sd,sd_app,sd_sup]},
               {licenses,["Apache 2.0"]},
               {links,[]}]}.

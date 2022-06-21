@@ -23,14 +23,14 @@
 %% Returns: List({HostId,Ip,SshPort,Uid,Pwd}
 %% --------------------------------------------------------------------
 start()->
-    ok=cluster_server:appl_start([]),
+    ok=cluster:appl_start([]),
    timer:sleep(3000),
   
 %    create_controllers(),
-    io:format(" sd_server:all() ~p~n",[ sd_server:all()]),
+    io:format(" sd:all() ~p~n",[ sd:all()]),
     timer:sleep(100),
-    LeaderNodes=sd_server:get(leader),
-    Leader=[{Node,rpc:call(Node,leader_server,who_is_leader,[],1000)}||Node<-LeaderNodes],
+    LeaderNodes=sd:get(leader),
+    Leader=[{Node,rpc:call(Node,leader,who_is_leader,[],1000)}||Node<-LeaderNodes],
     io:format("Leader ~p~n",[Leader]),
     
     
@@ -56,10 +56,10 @@ start_node_c202()->
     Kill=rpc:call(Node,init,stop,[],5000),
     io:format("Kill = ~p~n",[Kill]),
     Cookie=atom_to_list(erlang:get_cookie()),
-    Ip=config_server:host_local_ip(HostName),
-    SshPort=config_server:host_ssh_port(HostName),
-    Uid=config_server:host_uid(HostName),
-    Pwd=config_server:host_passwd(HostName),
+    Ip=config:host_local_ip(HostName),
+    SshPort=config:host_ssh_port(HostName),
+    Uid=config:host_uid(HostName),
+    Pwd=config:host_passwd(HostName),
  
     Msg="erl -sname "++NodeName++" "++"-setcookie "++Cookie++" "++"-detached", 
     Timeout=7000,
@@ -76,7 +76,7 @@ start_node_c202()->
 %% -------------------------------------------------------------------
 create_controllers()->
 
-    StartedControllers=k3_server:started_pods(controller),
+    StartedControllers=k3:started_pods(controller),
     ls(StartedControllers,[]).
 
 
@@ -96,15 +96,15 @@ ls([Controller|T],Acc)->
 
     ok=file:make_dir(filename:join(PodDir,"logs")),
     LogFile=filename:join([PodDir,"logs","k3.logs"]),
-    rpc:call(PodNode,nodelog_server,create,[LogFile],5000),
+    rpc:call(PodNode,nodelog,create,[LogFile],5000),
 
     RSd=pod_lib:load_start(PodNode,PodDir,"sd_app","latest"),
     RConfig=pod_lib:load_start(PodNode,PodDir,"config_app","latest"),
     
     
-    nodelog_server:log(notice,?MODULE_STRING,?LINE,{"Result start common ",CommonR}),
-    nodelog_server:log(notice,?MODULE_STRING,?LINE,{"Result start sd_app ",RSd}),
-    nodelog_server:log(notice,?MODULE_STRING,?LINE,{"Result start config_app ",RConfig}),
+    nodelog:log(notice,?MODULE_STRING,?LINE,{"Result start common ",CommonR}),
+    nodelog:log(notice,?MODULE_STRING,?LINE,{"Result start sd_app ",RSd}),
+    nodelog:log(notice,?MODULE_STRING,?LINE,{"Result start config_app ",RConfig}),
     
     R=pod_lib:load_start(PodNode,PodDir,"divi_app","latest"), 
    
@@ -118,13 +118,13 @@ ls([Controller|T],Acc)->
 %% Returns: non
 %% -------------------------------------------------------------------
 start_cluster()->
-    ok=cluster_server:appl_start([]),
-    Controllers=k3_server:started_pods(controller),
+    ok=cluster:appl_start([]),
+    Controllers=k3:started_pods(controller),
     io:format("Controllers ~p~n",[Controllers]),
-    Workers=k3_server:started_pods(worker),
+    Workers=k3:started_pods(worker),
     io:format("Workers ~p~n",[Workers]),
-    []=k3_server:failed_pods(controller),
-    []=k3_server:failed_pods(worker),
+    []=k3:failed_pods(controller),
+    []=k3:failed_pods(worker),
     AllNodes=nodes(),
     io:format("AllNodes ~p~n",[AllNodes]),
     ok.

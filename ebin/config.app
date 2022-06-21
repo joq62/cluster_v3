@@ -5,7 +5,7 @@
               {mod,{config_app,[]}},
               {applications,[kernel,stdlib]},
               {env,[]},
-              {modules,[appl_lib,config_app,config_server,config_sup,
-                        deployment_lib,deployment_spec_lib,host_lib]},
+              {modules,[appl_lib,config,config_app,config_sup,deployment_lib,
+                        deployment_spec_lib,host_lib]},
               {licenses,["Apache 2.0"]},
               {links,[]}]}.
