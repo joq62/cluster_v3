@@ -30,10 +30,11 @@ start()->
     io:format(" sd:all() ~p~n",[ sd:all()]),
     timer:sleep(100),
     LeaderNodes=sd:get(leader),
-    Leader=[{Node,rpc:call(Node,leader,who_is_leader,[],1000)}||Node<-LeaderNodes],
+    Leader=[{Node,rpc:call(Node,leader,who_is_leader,[],1000)}||{Node,_}<-LeaderNodes],
     io:format("Leader ~p~n",[Leader]),
     
-    
+    ok=start_math_monkey(),
+    ok=calculator_test(),
    % [rpc:call(N,init,stop,[],1000)||N<-nodes()],
     
    %% test pod_lib
@@ -48,68 +49,15 @@ start()->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% -------------------------------------------------------------------
-start_node_c202()->
-    ClusterId="cluster1",
-    HostName="c202",
-    NodeName="k3"++"_"++ClusterId,
-    Node=list_to_atom(NodeName++"@"++HostName),
-    Kill=rpc:call(Node,init,stop,[],5000),
-    io:format("Kill = ~p~n",[Kill]),
-    Cookie=atom_to_list(erlang:get_cookie()),
-    Ip=config:host_local_ip(HostName),
-    SshPort=config:host_ssh_port(HostName),
-    Uid=config:host_uid(HostName),
-    Pwd=config:host_passwd(HostName),
- 
-    Msg="erl -sname "++NodeName++" "++"-setcookie "++Cookie++" "++"-detached", 
-    Timeout=7000,
-    R=rpc:call(node(),my_ssh,ssh_send,[Ip,SshPort,Uid,Pwd,Msg,Timeout],Timeout-1000),
-    io:format("R = ~p~n",[R]),
-    pang=net_adm:ping(Node),
-    ok.
-    
-
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% -------------------------------------------------------------------
-create_controllers()->
-
-    StartedControllers=k3:started_pods(controller),
-    ls(StartedControllers,[]).
-
-
-
-ls([],R)->
-    R;
-ls([Controller|T],Acc)-> 
-  %    io:format("Controller ~p~n",[Controller]),
-    PodNode=proplists:get_value(pod_node,Controller),
-  %  io:format("PodNode ~p~n",[PodNode]),
-    
-    PodDir=proplists:get_value(pod_dir,Controller),
-  %  io:format("PodDir ~p~n",[PodDir]),
-
-    CommonR=pod_lib:load_start(PodNode,PodDir,"common","latest"),
-    pod_lib:load_start(PodNode,PodDir,"nodelog","latest"),
-
-    ok=file:make_dir(filename:join(PodDir,"logs")),
-    LogFile=filename:join([PodDir,"logs","k3.logs"]),
-    rpc:call(PodNode,nodelog,create,[LogFile],5000),
-
-    RSd=pod_lib:load_start(PodNode,PodDir,"sd_app","latest"),
-    RConfig=pod_lib:load_start(PodNode,PodDir,"config_app","latest"),
-    
-    
-    nodelog:log(notice,?MODULE_STRING,?LINE,{"Result start common ",CommonR}),
-    nodelog:log(notice,?MODULE_STRING,?LINE,{"Result start sd_app ",RSd}),
-    nodelog:log(notice,?MODULE_STRING,?LINE,{"Result start config_app ",RConfig}),
-    
-    R=pod_lib:load_start(PodNode,PodDir,"divi_app","latest"), 
-   
-    ls(T,[R|Acc]).
-	
+calculator_test()->
+    case sd:get(test_math) of
+	[]->
+	    io:format("no nodes available ~n");
+	[{N1,_}|_]->
+	    io:format("20+22= ~p~n",[rpc:call(N1,test_math,add,[20,22],2000)])
+    end,
+    timer:sleep(5000),
+    calculator_test().
 
 
 %% --------------------------------------------------------------------
@@ -117,29 +65,12 @@ ls([Controller|T],Acc)->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% -------------------------------------------------------------------
-start_cluster()->
-    ok=cluster:appl_start([]),
-    Controllers=k3:started_pods(controller),
-    io:format("Controllers ~p~n",[Controllers]),
-    Workers=k3:started_pods(worker),
-    io:format("Workers ~p~n",[Workers]),
-    []=k3:failed_pods(controller),
-    []=k3:failed_pods(worker),
-    AllNodes=nodes(),
-    io:format("AllNodes ~p~n",[AllNodes]),
+start_math_monkey()->
     ok.
 
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% -------------------------------------------------------------------
 
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% -------------------------------------------------------------------
+
+
 setup()->
   
     % Simulate host
