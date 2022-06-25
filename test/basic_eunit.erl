@@ -24,7 +24,7 @@
 %% --------------------------------------------------------------------
 start()->
     ok=cluster:appl_start([]),
-   timer:sleep(3000),
+    timer:sleep(3000),
   
 %    create_controllers(),
     io:format(" sd:all() ~p~n",[ sd:all()]),
@@ -32,9 +32,10 @@ start()->
     LeaderNodes=sd:get(leader),
     Leader=[{Node,rpc:call(Node,leader,who_is_leader,[],1000)}||{Node,_}<-LeaderNodes],
     io:format("Leader ~p~n",[Leader]),
-    
-    ok=start_math_monkey(),
-    ok=calculator_test(),
+    check_nodes(),
+  
+%    ok=start_math_monkey(),
+ %   ok=calculator_test(),
    % [rpc:call(N,init,stop,[],1000)||N<-nodes()],
     
    %% test pod_lib
@@ -43,6 +44,20 @@ start()->
 %    init:stop(),
     ok.
 
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% -------------------------------------------------------------------
+check_nodes()->
+    io:format("nodes() ~p~n",[{time(),nodes()}]),
+    LeaderNodes=sd:get(leader),
+    Leader=[{Node,rpc:call(Node,leader,who_is_leader,[],1000)}||{Node,_}<-LeaderNodes],
+    io:format("Node thinks that X is Leader ~p~n",[Leader]),
+ 
+    timer:sleep(20*1000),
+    check_nodes().    
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
