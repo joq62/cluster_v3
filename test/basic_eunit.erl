@@ -53,8 +53,13 @@ start()->
 check_nodes()->
     io:format("nodes() ~p~n",[{time(),nodes()}]),
     LeaderNodes=sd:get(leader),
-    Leader=[{Node,rpc:call(Node,leader,who_is_leader,[],1000)}||{Node,_}<-LeaderNodes],
+    Leader=[{rpc:call(Node,leader,who_is_leader,[],2000),Node}||{Node,_}<-LeaderNodes],
     io:format("Node thinks that X is Leader ~p~n",[Leader]),
+    io:format("test_math ~p~n",[sd:get(test_math)]),
+    io:format("test_add ~p~n",[sd:get(test_add)]),
+    io:format("test_divi ~p~n",[sd:get(test_divi)]),
+    io:format("test_sub ~p~n",[sd:get(test_sub)]),
+    
  
     timer:sleep(20*1000),
     check_nodes().    

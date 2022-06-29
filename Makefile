@@ -45,9 +45,11 @@ eunit:
 	git clone https://github.com/joq62/deployment_info_specs.git;
 #	Delete and create new cluster dir to make a clean start
 	mkdir ebin;
+	erlc -o ebin /home/joq62/erlang/infra_2/k3_node/apps/k3_node/src/k3_node_remote_host.erl;
 	rebar3 compile;
 	cp _build/default/lib/*/ebin/* ebin;
 #	testing
 	mkdir test_ebin;
 	erlc -o test_ebin test/*.erl;
-	erl -pa * -pa ebin -pa test_ebin -sname cluster_test -run basic_eunit start -cluster deployment_name $(deployment_name)
+#	erl -pa * -pa ebin -pa test_ebin -sname cluster_test -run basic_eunit start -cluster deployment_name $(deployment_name)
+	erl -pa * -pa ebin -pa test_ebin -sname $(deployment_name) -run basic_eunit start -cluster deployment_name $(deployment_name)

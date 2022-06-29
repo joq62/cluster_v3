@@ -32,6 +32,10 @@
 %% ====================================================================
 
 start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,DeploymentName)->
+    HostNodesStopped=[{list_to_atom(NodeName++"@"++HostName),rpc:call(list_to_atom(NodeName++"@"++HostName),init,stop,[],100)}||HostName<-Hosts],
+   % rpc:cast(node(),nodelog,log,[notice,?MODULE_STRING,?LINE,
+%			      {"DEBUG: HostNodesStopped ",HostNodesStopped}]),
+    io:format("DEBUG: HostNodesStopped ~p~n",[{?MODULE,?LINE, HostNodesStopped}]),
     start_host_nodes(Hosts,NodeName,CookieStr,PaArgs,EnvArgs,NodeAppl,NodeDir,DeploymentName,[]).
     
 start_host_nodes([],_NodeName,_CookieStr,_PaArgs,_EnvArgs,_NodeAppl,_NodeDir,DeploymentName,StartedNodes)->

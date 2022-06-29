@@ -1,0 +1,2 @@
+make eunit sname=cl_test_lgh_2_k3 deployment_name=cl_test_lgh_2
+

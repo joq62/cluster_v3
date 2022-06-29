@@ -136,7 +136,7 @@ init([]) ->
     {ok,DeploymentNameAtom}=application:get_env(deployment_name),
     DeploymentName=atom_to_list(DeploymentNameAtom),  
 
-    HostStartResult=rpc:call(node(),k3_remote_host,start_k3,[DeploymentName],25*5000),
+    HostStartResult=rpc:call(node(),k3_node_remote_host,start_k3,[DeploymentName],25*5000),
     timer:sleep(1000),
     rpc:cast(node(),nodelog,log,[notice,?MODULE_STRING,?LINE,
 						       {"HostStartResult",HostStartResult}]),

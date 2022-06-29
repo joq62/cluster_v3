@@ -1,9 +1,11 @@
-multiple_app_files: ["/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3/ebin/common.app",
-                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3/ebin/config.app",
-                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3/ebin/etcd.app",
-                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3/ebin/k3.app",
-                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3/ebin/node.app",
-                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3/ebin/nodelog.app",
-                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3/ebin/sd.app"]
+multiple_app_files: ["/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3_node/ebin/common.app",
+                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3_node/ebin/config.app",
+                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3_node/ebin/etcd.app",
+                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3_node/ebin/k3_controller.app",
+                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3_node/ebin/k3_node.app",
+                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3_node/ebin/leader.app",
+                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3_node/ebin/node.app",
+                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3_node/ebin/nodelog.app",
+                     "/home/joq62/erlang/infra_2/cluster/_build/default/lib/k3_node/ebin/sd.app"]
 []
 
